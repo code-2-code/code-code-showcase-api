@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"code-code.internal/showcase-api/internal/handlers"
-	"code-code.internal/showcase-api/internal/httpjson"
 	providerservicev1 "code-code.internal/go-contract/platform/provider/v1"
 	supportv1 "code-code.internal/go-contract/platform/support/v1"
+	"code-code.internal/showcase-api/internal/handlers"
+	"code-code.internal/showcase-api/internal/httpjson"
 	"google.golang.org/grpc"
 )
 
@@ -46,7 +46,7 @@ func New(config Config) (*Server, error) {
 
 	handlers.RegisterVendorHandlers(mux, supportClient)
 	handlers.RegisterCLIHandlers(mux, providerClient)
-	handlers.RegisterProviderHandlers(mux, providerClient)
+	handlers.RegisterProviderHandlers(mux, providerClient, handlers.NewProviderHostTelemetryClient(config.PrometheusBaseURL))
 	handlers.RegisterStatsHandlers(mux, providerClient, supportClient)
 	handlers.RegisterModelProxyHandlers(mux, config.ModelConnectBaseURL)
 

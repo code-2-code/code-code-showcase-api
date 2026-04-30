@@ -3,28 +3,46 @@ package handlers
 import (
 	"net/http"
 
-	"code-code.internal/showcase-api/internal/httpjson"
 	managementv1 "code-code.internal/go-contract/platform/management/v1"
 	providerservicev1 "code-code.internal/go-contract/platform/provider/v1"
+	"code-code.internal/showcase-api/internal/httpjson"
 )
 
-// RegisterProviderHandlers registers projected, read-only provider endpoints.
-// The response shape is ListProvidersResponse (protobuf JSON) to match
-// the existing console-web SWR hooks, but sensitive fields are stripped.
-func RegisterProviderHandlers(mux *http.ServeMux, provider providerservicev1.ProviderServiceClient) {
+// RegisterProviderHandlers registers projected, read-only provider endpoints
+// with account and credential identifiers stripped for the public showcase.
+func RegisterProviderHandlers(
+	mux *http.ServeMux,
+	provider providerservicev1.ProviderServiceClient,
+	hostTelemetry *ProviderHostTelemetryClient,
+) {
+	mux.HandleFunc("/api/providers/surfaces", httpjson.RequireGET(func(w http.ResponseWriter, r *http.Request) {
+		response, err := provider.ListProviderSurfaces(r.Context(), &providerservicev1.ListProviderSurfacesRequest{})
+		if err != nil {
+			httpjson.WriteServiceError(w, http.StatusInternalServerError, "list_provider_surfaces_failed", err)
+			return
+		}
+		out := &managementv1.ListProviderSurfacesResponse{}
+		if err := transcodeMessage(response, out); err != nil {
+			httpjson.WriteServiceError(w, http.StatusInternalServerError, "project_provider_surfaces_failed", err)
+			return
+		}
+		httpjson.WriteProtoJSON(w, http.StatusOK, out)
+	}))
+
 	mux.HandleFunc("/api/providers", httpjson.RequireGET(func(w http.ResponseWriter, r *http.Request) {
 		response, err := provider.ListProviders(r.Context(), &providerservicev1.ListProvidersRequest{})
 		if err != nil {
 			httpjson.WriteServiceError(w, http.StatusInternalServerError, "list_providers_failed", err)
 			return
 		}
-		mgmt := &managementv1.ListProvidersResponse{}
-		if err := transcodeMessage(response, mgmt); err != nil {
-			httpjson.WriteServiceError(w, http.StatusInternalServerError, "transcode_providers_failed", err)
+		out := &managementv1.ListProvidersResponse{}
+		if err := transcodeMessage(response, out); err != nil {
+			httpjson.WriteServiceError(w, http.StatusInternalServerError, "project_providers_failed", err)
 			return
 		}
-		stripSensitiveFields(mgmt)
-		httpjson.WriteProtoJSON(w, http.StatusOK, mgmt)
+		attachProviderHostTelemetry(r.Context(), out.GetItems(), hostTelemetry)
+		stripSensitiveFields(out)
+		httpjson.WriteProtoJSON(w, http.StatusOK, out)
 	}))
 }
 
@@ -36,15 +54,10 @@ func stripSensitiveFields(response *managementv1.ListProvidersResponse) {
 		// Strip account instance identifiers.
 		item.ProviderId = ""
 		item.ProviderCredentialId = ""
-		item.CredentialSubjectSummary = nil
 
-		for _, surface := range item.GetSurfaces() {
-			// Strip credential reference and custom endpoint URLs.
-			surface.ProviderCredentialId = ""
-			surface.ProviderId = ""
-			if surface.GetRuntime() != nil && surface.GetRuntime().GetApi() != nil {
-				surface.GetRuntime().GetApi().BaseUrl = ""
-			}
+		// Strip custom endpoint URLs.
+		if item.GetRuntime() != nil && item.GetRuntime().GetApi() != nil {
+			item.GetRuntime().GetApi().BaseUrl = ""
 		}
 	}
 }

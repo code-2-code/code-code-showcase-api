@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,7 +30,7 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := telemetryShutdown(shutdownCtx); err != nil {
-			log.Printf("shutdown telemetry failed: %v", err)
+			slog.Error("shutdown telemetry failed", "error", err)
 		}
 	}()
 
@@ -42,7 +42,7 @@ func main() {
 	must(err)
 	defer func() {
 		if err := providerConn.Close(); err != nil {
-			log.Printf("close provider connection failed: %v", err)
+			slog.Error("close provider connection failed", "error", err)
 		}
 	}()
 
@@ -54,7 +54,7 @@ func main() {
 	must(err)
 	defer func() {
 		if err := supportConn.Close(); err != nil {
-			log.Printf("close support connection failed: %v", err)
+			slog.Error("close support connection failed", "error", err)
 		}
 	}()
 
@@ -79,16 +79,20 @@ func main() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
-		log.Println("shutting down showcase-api...")
+		slog.Info("shutting down showcase-api")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := apiServer.Shutdown(shutdownCtx); err != nil {
-			log.Printf("showcase-api shutdown failed: %v", err)
+			slog.Error("showcase-api shutdown failed", "error", err)
 		}
 	}()
 
-	log.Printf("showcase-api listening on %s (provider=%s, support=%s, model_connect=%s, prometheus=%s)",
-		addr, providerAddr, supportAddr, modelConnectBaseURL, prometheusBaseURL)
+	slog.Info("showcase-api listening",
+		"addr", addr,
+		"provider", providerAddr,
+		"support", supportAddr,
+		"model_connect", modelConnectBaseURL,
+		"prometheus", prometheusBaseURL)
 	if err := apiServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		must(err)
 	}
@@ -104,6 +108,7 @@ func envOrDefault(key, fallback string) string {
 
 func must(err error) {
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("fatal error", "error", err)
+		os.Exit(1)
 	}
 }

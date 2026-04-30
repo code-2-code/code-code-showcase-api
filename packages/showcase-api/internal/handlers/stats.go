@@ -3,10 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"code-code.internal/showcase-api/internal/httpjson"
-	managementv1 "code-code.internal/go-contract/platform/management/v1"
 	providerservicev1 "code-code.internal/go-contract/platform/provider/v1"
 	supportv1 "code-code.internal/go-contract/platform/support/v1"
+	"code-code.internal/showcase-api/internal/httpjson"
 )
 
 // ShowcaseStats carries aggregated platform statistics for the showcase dashboard.
@@ -43,16 +42,11 @@ func RegisterStatsHandlers(mux *http.ServeMux, provider providerservicev1.Provid
 			httpjson.WriteServiceError(w, http.StatusInternalServerError, "list_providers_failed", err)
 			return
 		}
-		mgmt := &managementv1.ListProvidersResponse{}
-		if err := transcodeMessage(providerResp, mgmt); err != nil {
-			httpjson.WriteServiceError(w, http.StatusInternalServerError, "transcode_providers_failed", err)
-			return
-		}
-		stats.ProviderCount = len(mgmt.GetItems())
-		for _, p := range mgmt.GetItems() {
-			for _, s := range p.GetSurfaces() {
+		stats.ProviderCount = len(providerResp.GetItems())
+		for _, p := range providerResp.GetItems() {
+			if p.GetSurfaceId() != "" {
 				stats.SurfaceCount++
-				if s.GetStatus() != nil && s.GetStatus().GetPhase() == managementv1.ProviderSurfaceBindingPhase_PROVIDER_SURFACE_BINDING_PHASE_READY {
+				if p.GetStatus() != nil && p.GetStatus().GetPhase() == providerservicev1.ProviderPhase_PROVIDER_PHASE_READY {
 					stats.ReadyCount++
 				}
 			}

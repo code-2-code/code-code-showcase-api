@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"code-code.internal/showcase-api/internal/httpjson"
 	supportv1 "code-code.internal/go-contract/platform/support/v1"
+	"code-code.internal/showcase-api/internal/httpjson"
 )
 
 // RegisterVendorHandlers registers read-only vendor listing endpoints.
@@ -31,14 +31,4 @@ func RegisterVendorHandlers(mux *http.ServeMux, support supportv1.SupportService
 		httpjson.WriteProtoJSON(w, http.StatusOK, response)
 	})
 	mux.HandleFunc("/api/support/clis", clisHandler)
-
-	surfacesHandler := httpjson.RequireGET(func(w http.ResponseWriter, r *http.Request) {
-		response, err := support.ListProviderSurfaces(r.Context(), &supportv1.ListProviderSurfacesRequest{})
-		if err != nil {
-			httpjson.WriteServiceError(w, http.StatusInternalServerError, "list_provider_surfaces_failed", err)
-			return
-		}
-		httpjson.WriteProtoJSON(w, http.StatusOK, response)
-	})
-	mux.HandleFunc("/api/support/provider-surfaces", surfacesHandler)
 }
