@@ -1,22 +1,15 @@
-# code-code-console
+# code-code-showcase-api
 
-Console BFF, console web UI, and showcase-facing application surfaces for Code Code.
+Showcase-facing HTTP API for Code Code.
 
 This repository owns:
 
-- `packages/console-api`: console HTTP/BFF services and the current chat service implementation.
-- `packages/console-web`: React console and showcase web workspaces.
-- `packages/showcase-api`: showcase HTTP API.
-
-This split preserves source history from the original monorepo. Contract
-dependency migration is the next step: console code should consume
-`code-code-contracts` through versioned Go/TypeScript packages instead of local
-workspace paths.
+- `packages/showcase-api`: showcase handlers, public read projections, HTTP
+  server wiring, and telemetry setup.
+- `code-code-contracts`: generated shared contracts as a Git submodule.
 
 Useful checks:
 
 ```bash
-cd packages/console-api && go test ./...
 cd packages/showcase-api && go test ./...
-cd packages/console-web && pnpm install && pnpm typecheck
 ```
