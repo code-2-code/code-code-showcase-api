@@ -72,18 +72,7 @@ func attachProviderHostTelemetry(ctx context.Context, providers []*managementv1.
 	if client != nil {
 		points = providerHostTelemetryPointsFromSamples(client.queryVector(ctx))
 	}
-	for _, provider := range providers {
-		if provider == nil {
-			continue
-		}
-		providerTelemetryByKey := map[string]*managementv1.ProviderHostTelemetry{}
-		target, ok := providerHostTelemetryTargetFromProvider(provider)
-		if ok {
-			telemetry := providerHostTelemetryView(target, points[target.key])
-			providerTelemetryByKey[target.key] = telemetry
-		}
-		provider.HostTelemetry = sortedProviderHostTelemetry(providerTelemetryByKey)
-	}
+	_ = points
 }
 
 func (c *ProviderHostTelemetryClient) queryVector(ctx context.Context) []prometheusVectorSample {
@@ -189,10 +178,15 @@ func providerHostTelemetryTargetFromMetric(metric map[string]string) (providerHo
 }
 
 func providerHostTelemetryTargetFromProvider(provider *managementv1.ProviderView) (providerHostTelemetryTarget, bool) {
-	if provider == nil || provider.GetRuntime().GetApi() == nil {
+	if provider == nil {
 		return providerHostTelemetryTarget{}, false
 	}
-	return normalizeProviderHostTelemetryTarget(provider.GetRuntime().GetApi().GetBaseUrl())
+	for _, endpoint := range provider.GetEndpoints() {
+		if endpoint.GetApi() != nil {
+			return normalizeProviderHostTelemetryTarget(endpoint.GetApi().GetBaseUrl())
+		}
+	}
+	return providerHostTelemetryTarget{}, false
 }
 
 func normalizeProviderHostTelemetryTarget(raw string) (providerHostTelemetryTarget, bool) {

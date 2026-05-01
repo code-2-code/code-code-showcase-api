@@ -47,8 +47,8 @@ func RegisterProviderHandlers(
 }
 
 // stripSensitiveFields removes account-identifying and credential fields from
-// each ProviderView while retaining display_name, vendor, status, and model
-// catalog. The message is modified in place.
+// each ProviderView while retaining display_name, status, and model catalog.
+// The message is modified in place.
 func stripSensitiveFields(response *managementv1.ListProvidersResponse) {
 	for _, item := range response.GetItems() {
 		// Strip account instance identifiers.
@@ -56,8 +56,10 @@ func stripSensitiveFields(response *managementv1.ListProvidersResponse) {
 		item.ProviderCredentialId = ""
 
 		// Strip custom endpoint URLs.
-		if item.GetRuntime() != nil && item.GetRuntime().GetApi() != nil {
-			item.GetRuntime().GetApi().BaseUrl = ""
+		for _, endpoint := range item.GetEndpoints() {
+			if endpoint.GetApi() != nil {
+				endpoint.GetApi().BaseUrl = ""
+			}
 		}
 	}
 }
