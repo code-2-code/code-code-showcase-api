@@ -45,7 +45,7 @@ func New(config Config) (*Server, error) {
 	}))
 
 	handlers.RegisterVendorHandlers(mux, supportClient)
-	handlers.RegisterCLIHandlers(mux, providerClient)
+	handlers.RegisterCLIHandlers(mux, supportClient)
 	handlers.RegisterProviderHandlers(mux, providerClient, handlers.NewProviderHostTelemetryClient(config.PrometheusBaseURL))
 	handlers.RegisterStatsHandlers(mux, providerClient, supportClient)
 	handlers.RegisterModelProxyHandlers(mux, config.ModelConnectBaseURL)

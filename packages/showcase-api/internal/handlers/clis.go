@@ -3,20 +3,18 @@ package handlers
 import (
 	"net/http"
 
+	supportv1 "code-code.internal/go-contract/platform/support/v1"
 	"code-code.internal/showcase-api/internal/httpjson"
-	providerservicev1 "code-code.internal/go-contract/platform/provider/v1"
 )
 
-// RegisterCLIHandlers registers read-only CLI definition endpoints.
-func RegisterCLIHandlers(mux *http.ServeMux, provider providerservicev1.ProviderServiceClient) {
+// RegisterCLIHandlers registers read-only CLI endpoints.
+func RegisterCLIHandlers(mux *http.ServeMux, support supportv1.SupportServiceClient) {
 	mux.HandleFunc("/api/clis", httpjson.RequireGET(func(w http.ResponseWriter, r *http.Request) {
-		response, err := provider.ListCLIDefinitions(r.Context(), &providerservicev1.ListCLIDefinitionsRequest{})
+		response, err := support.ListCLIs(r.Context(), &supportv1.ListCLIsRequest{})
 		if err != nil {
 			httpjson.WriteServiceError(w, http.StatusInternalServerError, "list_clis_failed", err)
 			return
 		}
-		// CLIDefinitionView contains only public metadata: cli_id,
-		// display_name, icon_url, website_url, description, capabilities.
 		httpjson.WriteProtoJSON(w, http.StatusOK, response)
 	}))
 }

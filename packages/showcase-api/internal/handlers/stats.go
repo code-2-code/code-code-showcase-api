@@ -30,7 +30,7 @@ func RegisterStatsHandlers(mux *http.ServeMux, provider providerservicev1.Provid
 		}
 		stats.VendorCount = len(vendorResp.GetItems())
 
-		cliResp, err := provider.ListCLIDefinitions(ctx, &providerservicev1.ListCLIDefinitionsRequest{})
+		cliResp, err := support.ListCLIs(ctx, &supportv1.ListCLIsRequest{})
 		if err != nil {
 			httpjson.WriteServiceError(w, http.StatusInternalServerError, "list_clis_failed", err)
 			return
